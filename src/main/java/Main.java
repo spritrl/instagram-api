@@ -62,6 +62,17 @@ public class Main {
                         .orElse(null));
     }
 
+    private static CompletableFuture<List<Long>> findUserIdsFromUsernames(IGClient client, List<String> usernames) {
+        List<CompletableFuture<Long>> futures = usernames.stream()
+                .map(username -> findUserIdFromUsername(client, username))
+                .collect(Collectors.toList());
+
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .thenApply(v -> futures.stream()
+                        .map(CompletableFuture::join)
+                        .collect(Collectors.toList()));
+    }
+
     private static CompletableFuture<Boolean> isPrivateAccount(IGClient client, String username) {
         return client.sendRequest(new UsersSearchRequest(username))
                 .thenApply(UsersSearchResponse::getUsers)
