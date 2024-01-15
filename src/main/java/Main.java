@@ -61,6 +61,43 @@ public class Main {
                         .orElse(false));
     }
 
+    private static CompletableFuture<Pair<Long, Long>> fetchLastPostTimestamp(IGClient client, Long userId,
+            String username) {
+        return isPrivateAccount(client, username)
+                .thenCompose(isPrivate -> {
+                    if (isPrivate) {
+                        return CompletableFuture.completedFuture(null);
+                    } else {
+                        return new FeedUserRequest(userId).execute(client)
+                                .thenApply(feedResponse -> {
+                                    List<TimelineMedia> medias = feedResponse.getItems();
+                                    if (!medias.isEmpty()) {
+                                        long timestamp = medias.get(0).getTaken_at();
+                                        return new Pair<>(userId, timestamp);
+                                    }
+                                    return null;
+                                });
+                    }
+                });
+    }
+
+    private static CompletableFuture<List<Long>> sortUsersByRecentActivity(IGClient client, List<String> usernames) {
+        List<CompletableFuture<Pair<Long, Long>>> futures = new ArrayList<>();
+
+        for (String username : usernames) {
+            futures.add(client.actions().users().findByUsername(username)
+                    .thenCompose(userAction -> fetchLastPostTimestamp(client, userAction.getUser().getPk(), username)));
+        }
+
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .thenApply(v -> futures.stream()
+                        .map(CompletableFuture::join)
+                        .filter(Objects::nonNull)
+                        .sorted(Comparator.comparing(Pair<Long, Long>::getSecond).reversed())
+                        .map(Pair::getFirst)
+                        .collect(Collectors.toList()));
+    }
+
     private static CompletableFuture<ArrayList<String>> fetchLikersOfLatestPost(IGClient client, String username) {
         return client.actions().users().findByUsername(username)
                 .thenCompose(userAction -> new FeedUserRequest(userAction.getUser().getPk()).execute(client))
