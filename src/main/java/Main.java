@@ -6,6 +6,7 @@ import com.github.instagram4j.instagram4j.requests.feed.FeedUserRequest;
 import com.github.instagram4j.instagram4j.requests.friendships.FriendshipsActionRequest.FriendshipsAction;
 import com.github.instagram4j.instagram4j.IGClient.Builder.LoginHandler;
 import com.github.instagram4j.instagram4j.requests.media.MediaGetCommentsRequest;
+import com.github.instagram4j.instagram4j.requests.media.MediaGetLikersRequest;
 import com.github.instagram4j.instagram4j.responses.media.MediaGetCommentsResponse;
 import com.github.instagram4j.instagram4j.utils.IGChallengeUtils;
 import java.util.*;
@@ -14,6 +15,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class Main {
     public static void main(String[] args) throws IOException {
@@ -45,6 +47,37 @@ public class Main {
         } finally {
             scanner.close();
         }
+    }
+
+    private static CompletableFuture<ArrayList<String>> fetchLikersOfLatestPost(IGClient client, String username) {
+        return client.actions().users().findByUsername(username)
+                .thenCompose(userAction -> new FeedUserRequest(userAction.getUser().getPk()).execute(client))
+                .thenCompose(feedResponse -> {
+                    List<TimelineMedia> medias = feedResponse.getItems();
+                    if (!medias.isEmpty()) {
+                        TimelineMedia lastPost = medias.get(0);
+                        return new MediaGetLikersRequest(lastPost.getId()).execute(client);
+                    } else {
+                        System.out.println("[fetchCommentersOfLatestPost] No post found.");
+                        return CompletableFuture.completedFuture(null);
+                    }
+                })
+                .thenApply(likersResponse -> {
+                    if (likersResponse != null) {
+                        System.out.println(
+                                "[fetchLikersOfLatestPost] Users list size : " + likersResponse.getUsers().size());
+                        return likersResponse.getUsers()
+                                .stream()
+                                .map(user -> user.getUsername())
+                                .collect(Collectors.toCollection(ArrayList::new));
+                    } else {
+                        return new ArrayList<String>();
+                    }
+                })
+                .exceptionally(throwable -> {
+                    System.out.println("Une erreur est survenue : " + throwable.getMessage());
+                    return new ArrayList<String>();
+                });
     }
 
     private static CompletableFuture<ArrayList<String>> fetchCommentersOfLatestPost(IGClient client, String username) {
