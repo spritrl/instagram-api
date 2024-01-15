@@ -7,7 +7,9 @@ import com.github.instagram4j.instagram4j.requests.friendships.FriendshipsAction
 import com.github.instagram4j.instagram4j.IGClient.Builder.LoginHandler;
 import com.github.instagram4j.instagram4j.requests.media.MediaGetCommentsRequest;
 import com.github.instagram4j.instagram4j.requests.media.MediaGetLikersRequest;
+import com.github.instagram4j.instagram4j.requests.users.UsersSearchRequest;
 import com.github.instagram4j.instagram4j.responses.media.MediaGetCommentsResponse;
+import com.github.instagram4j.instagram4j.responses.users.UsersSearchResponse;
 import com.github.instagram4j.instagram4j.utils.IGChallengeUtils;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -49,6 +51,16 @@ public class Main {
         }
     }
 
+    private static CompletableFuture<Boolean> isPrivateAccount(IGClient client, String username) {
+        return client.sendRequest(new UsersSearchRequest(username))
+                .thenApply(UsersSearchResponse::getUsers)
+                .thenApply(users -> users.stream()
+                        .filter(user -> user.getUsername().equalsIgnoreCase(username))
+                        .findAny()
+                        .map(user -> user.is_private())
+                        .orElse(false));
+    }
+
     private static CompletableFuture<ArrayList<String>> fetchLikersOfLatestPost(IGClient client, String username) {
         return client.actions().users().findByUsername(username)
                 .thenCompose(userAction -> new FeedUserRequest(userAction.getUser().getPk()).execute(client))
@@ -58,7 +70,7 @@ public class Main {
                         TimelineMedia lastPost = medias.get(0);
                         return new MediaGetLikersRequest(lastPost.getId()).execute(client);
                     } else {
-                        System.out.println("[fetchCommentersOfLatestPost] No post found.");
+                        System.out.println("[fetchLikersOfLatestPost] No post found.");
                         return CompletableFuture.completedFuture(null);
                     }
                 })
