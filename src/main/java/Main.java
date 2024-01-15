@@ -2,6 +2,7 @@ import com.github.instagram4j.instagram4j.IGClient;
 import com.github.instagram4j.instagram4j.exceptions.IGLoginException;
 import com.github.instagram4j.instagram4j.models.media.timeline.Comment;
 import com.github.instagram4j.instagram4j.models.media.timeline.TimelineMedia;
+import com.github.instagram4j.instagram4j.models.user.Profile;
 import com.github.instagram4j.instagram4j.requests.feed.FeedUserRequest;
 import com.github.instagram4j.instagram4j.requests.friendships.FriendshipsActionRequest.FriendshipsAction;
 import com.github.instagram4j.instagram4j.IGClient.Builder.LoginHandler;
@@ -49,6 +50,16 @@ public class Main {
         } finally {
             scanner.close();
         }
+    }
+
+    private static CompletableFuture<Long> findUserIdFromUsername(IGClient client, String username) {
+        return client.sendRequest(new UsersSearchRequest(username))
+                .thenApply(UsersSearchResponse::getUsers)
+                .thenApply(users -> users.stream()
+                        .filter(user -> user.getUsername().equalsIgnoreCase(username))
+                        .findAny()
+                        .map(Profile::getPk)
+                        .orElse(null));
     }
 
     private static CompletableFuture<Boolean> isPrivateAccount(IGClient client, String username) {
