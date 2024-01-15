@@ -1,10 +1,12 @@
 import com.github.instagram4j.instagram4j.IGClient;
 import com.github.instagram4j.instagram4j.exceptions.IGLoginException;
+import com.github.instagram4j.instagram4j.models.friendships.Friendship;
 import com.github.instagram4j.instagram4j.models.media.timeline.Comment;
 import com.github.instagram4j.instagram4j.models.media.timeline.TimelineMedia;
 import com.github.instagram4j.instagram4j.models.user.Profile;
 import com.github.instagram4j.instagram4j.requests.feed.FeedUserRequest;
 import com.github.instagram4j.instagram4j.requests.friendships.FriendshipsActionRequest.FriendshipsAction;
+import com.github.instagram4j.instagram4j.requests.friendships.FriendshipsShowRequest;
 import com.github.instagram4j.instagram4j.IGClient.Builder.LoginHandler;
 import com.github.instagram4j.instagram4j.requests.media.MediaGetCommentsRequest;
 import com.github.instagram4j.instagram4j.requests.media.MediaGetLikersRequest;
@@ -81,6 +83,18 @@ public class Main {
                         .findAny()
                         .map(user -> user.is_private())
                         .orElse(false));
+    }
+
+    private static CompletableFuture<Boolean> isFollowing(IGClient client, String targetUsername) {
+        return client.actions().users().findByUsername(targetUsername)
+                .thenCompose(userAction -> {
+                    long targetUserId = userAction.getUser().getPk();
+                    return client.sendRequest(new FriendshipsShowRequest(targetUserId));
+                })
+                .thenApply(response -> {
+                    Friendship friendship = response.getFriendship();
+                    return friendship != null && friendship.isFollowing();
+                });
     }
 
     private static CompletableFuture<Pair<Long, Long>> fetchLastPostTimestamp(IGClient client, Long userId,
@@ -202,9 +216,13 @@ public class Main {
                     userAction.action(action == "Follow" ? FriendshipsAction.CREATE : FriendshipsAction.DESTROY)
                             .thenAccept(response -> {
                                 if (response.getStatus().equals("ok")) {
-                                    System.out.println("[followUnfolowAction] Follow request sent.");
+                                    System.out.println(
+                                            "[followUnfolowAction] " + (action.equals("Follow") ? "Follow" : "Unfollow")
+                                                    + " request sent.");
                                 } else {
-                                    System.out.println("[followUnfolowAction] Follow request error.");
+                                    System.out.println(
+                                            "[followUnfolowAction] " + (action.equals("Follow") ? "Follow" : "Unfollow")
+                                                    + " request error.");
                                 }
                             })
                             .exceptionally(throwable -> {
