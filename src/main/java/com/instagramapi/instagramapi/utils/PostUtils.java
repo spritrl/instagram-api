@@ -1,11 +1,14 @@
 package com.instagramapi.instagramapi.utils;
 
 import com.github.instagram4j.instagram4j.IGClient;
+import com.github.instagram4j.instagram4j.actions.media.MediaAction;
 import com.github.instagram4j.instagram4j.models.media.timeline.Comment;
 import com.github.instagram4j.instagram4j.models.media.timeline.TimelineMedia;
 import com.github.instagram4j.instagram4j.requests.feed.FeedUserRequest;
+import com.github.instagram4j.instagram4j.requests.media.MediaActionRequest;
 import com.github.instagram4j.instagram4j.requests.media.MediaGetCommentsRequest;
 import com.github.instagram4j.instagram4j.requests.media.MediaGetLikersRequest;
+import com.github.instagram4j.instagram4j.responses.IGResponse;
 import com.github.instagram4j.instagram4j.responses.media.MediaGetCommentsResponse;
 
 import java.util.ArrayList;
@@ -18,13 +21,10 @@ import java.util.stream.Collectors;
 public class PostUtils {
 
   public static CompletableFuture<ArrayList<String>> fetchCommentersOfLatestPost(IGClient client, String username) {
-    return client.actions().users().findByUsername(username)
-        .thenCompose(userAction -> new FeedUserRequest(userAction.getUser().getPk()).execute(client))
-        .thenCompose(feedResponse -> {
-          List<TimelineMedia> medias = feedResponse.getItems();
-          if (!medias.isEmpty()) {
-            TimelineMedia lastPost = medias.get(0);
-            return getAllCommentingUsers(client, lastPost.getId());
+    return fetchLatestPostId(client, username)
+        .thenCompose(mediaId -> {
+          if (mediaId != null) {
+            return getAllCommentingUsers(client, mediaId);
           } else {
             System.out.println("[fetchCommentersOfLatestPost] No post found.");
             return CompletableFuture.completedFuture(new ArrayList<>());
@@ -37,13 +37,10 @@ public class PostUtils {
   }
 
   public static CompletableFuture<ArrayList<String>> fetchLikersOfLatestPost(IGClient client, String username) {
-    return client.actions().users().findByUsername(username)
-        .thenCompose(userAction -> new FeedUserRequest(userAction.getUser().getPk()).execute(client))
-        .thenCompose(feedResponse -> {
-          List<TimelineMedia> medias = feedResponse.getItems();
-          if (!medias.isEmpty()) {
-            TimelineMedia lastPost = medias.get(0);
-            return new MediaGetLikersRequest(lastPost.getId()).execute(client);
+    return fetchLatestPostId(client, username)
+        .thenCompose(mediaId -> {
+          if (mediaId != null) {
+            return new MediaGetLikersRequest(mediaId).execute(client);
           } else {
             System.out.println("[fetchLikersOfLatestPost] No post found.");
             return CompletableFuture.completedFuture(null);
@@ -129,5 +126,23 @@ public class PostUtils {
             .sorted(Comparator.comparing(Pair<Long, Long>::getSecond).reversed())
             .map(Pair::getFirst)
             .collect(Collectors.toList()));
+  }
+
+  public static CompletableFuture<String> fetchLatestPostId(IGClient client, String username) {
+    return client.actions().users().findByUsername(username)
+        .thenCompose(userAction -> new FeedUserRequest(userAction.getUser().getPk()).execute(client))
+        .thenApply(feedResponse -> {
+          List<TimelineMedia> medias = feedResponse.getItems();
+          if (!medias.isEmpty()) {
+            return medias.get(0).getId();
+          } else {
+            System.out.println("[fetchLatestPostId] No post found.");
+            return null;
+          }
+        })
+        .exceptionally(throwable -> {
+          System.out.println("[fetchLatestPostId] Error : " + throwable.getMessage());
+          return null;
+        });
   }
 }
