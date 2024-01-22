@@ -1,3 +1,5 @@
+package com.instagramapi.instagramapi.utils;
+
 public class Pair<K, V> {
     private K first;
     private V second;
