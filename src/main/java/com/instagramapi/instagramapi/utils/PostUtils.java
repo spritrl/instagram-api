@@ -145,4 +145,9 @@ public class PostUtils {
           return null;
         });
   }
+
+  public static CompletableFuture<IGResponse> likePost(IGClient client, String mediaId) {
+    MediaAction mediaAction = MediaAction.of(client, mediaId);
+    return mediaAction.action(MediaActionRequest.MediaAction.LIKE);
+  }
 }
