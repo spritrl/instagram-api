@@ -1,11 +1,9 @@
 package com.instagramapi.instagramapi.utils;
 
 import com.github.instagram4j.instagram4j.IGClient;
-import com.github.instagram4j.instagram4j.actions.media.MediaAction;
 import com.github.instagram4j.instagram4j.models.media.timeline.Comment;
 import com.github.instagram4j.instagram4j.models.media.timeline.TimelineMedia;
 import com.github.instagram4j.instagram4j.requests.feed.FeedUserRequest;
-import com.github.instagram4j.instagram4j.requests.media.MediaActionRequest;
 import com.github.instagram4j.instagram4j.requests.media.MediaGetCommentsRequest;
 import com.github.instagram4j.instagram4j.requests.media.MediaGetLikersRequest;
 import com.github.instagram4j.instagram4j.responses.IGResponse;
@@ -144,5 +142,9 @@ public class PostUtils {
           System.out.println("[fetchLatestPostId] Error : " + throwable.getMessage());
           return null;
         });
+  }
+
+  public static CompletableFuture<IGResponse> likePost(IGClient client, String mediaId) {
+    return InteractionUtils.likePost(client, mediaId);
   }
 }

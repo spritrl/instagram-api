@@ -1,7 +1,12 @@
 package com.instagramapi.instagramapi.utils;
 
+import java.util.concurrent.CompletableFuture;
+
 import com.github.instagram4j.instagram4j.IGClient;
+import com.github.instagram4j.instagram4j.actions.media.MediaAction;
 import com.github.instagram4j.instagram4j.requests.friendships.FriendshipsActionRequest.FriendshipsAction;
+import com.github.instagram4j.instagram4j.requests.media.MediaActionRequest;
+import com.github.instagram4j.instagram4j.responses.IGResponse;
 
 public class InteractionUtils {
 
@@ -35,5 +40,10 @@ public class InteractionUtils {
                     return null;
                 })
                 .join();
+    }
+
+    public static CompletableFuture<IGResponse> likePost(IGClient client, String mediaId) {
+        MediaAction mediaAction = MediaAction.of(client, mediaId);
+        return mediaAction.action(MediaActionRequest.MediaAction.LIKE);
     }
 }
