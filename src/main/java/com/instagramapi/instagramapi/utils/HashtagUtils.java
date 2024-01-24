@@ -52,4 +52,20 @@ public class HashtagUtils {
 
         return mediaObjects;
     }
+
+    public static List<Long> extractMediaIds(List<JSONObject> extractedMedia) {
+        List<Long> mediaIds = new ArrayList<>();
+
+        for (JSONObject mediaObject : extractedMedia) {
+            if (mediaObject.has("media") && mediaObject.getJSONObject("media").has("caption")) {
+                JSONObject caption = mediaObject.getJSONObject("media").getJSONObject("caption");
+                if (caption.has("media_id")) {
+                    long mediaId = caption.getLong("media_id");
+                    mediaIds.add(mediaId);
+                }
+            }
+        }
+
+        return mediaIds;
+    }
 }
