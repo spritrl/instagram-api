@@ -62,7 +62,7 @@ public class PostUtils {
         });
   }
 
-  private static CompletableFuture<ArrayList<String>> getAllCommentingUsers(IGClient client, String mediaId) {
+  public static CompletableFuture<ArrayList<String>> getAllCommentingUsers(IGClient client, String mediaId) {
     return CompletableFuture.supplyAsync(() -> {
       ArrayList<String> commenterList = new ArrayList<>();
       String nextMinId = null;
